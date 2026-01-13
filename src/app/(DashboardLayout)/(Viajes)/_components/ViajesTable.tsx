@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getDatabase, ref, onValue } from 'firebase/database';
 import { firebaseApp } from '@/utils/firebase';
+import { getUser } from '@/utils/user';
 import {
     Typography, Box,
     Table,
@@ -38,10 +39,15 @@ export interface Trip {
     userId: string;
 }
 
+export interface TripWithCustomerInfo extends Trip {
+    customerName?: string;
+    customerLastName?: string;
+}
+
 type Order = 'asc' | 'desc';
 
 const ViajesTable = () => {
-    const [trips, setTrips] = useState<Trip[]>([]);
+    const [trips, setTrips] = useState<TripWithCustomerInfo[]>([]);
     const [loading, setLoading] = useState(true);
     const [order, setOrder] = useState<Order>('asc');
     const [orderBy, setOrderBy] = useState<keyof Trip>('updatedAt');
@@ -72,18 +78,33 @@ const ViajesTable = () => {
             const data = snapshot.val();
             console.log("Raw data from rideRequest:", data);
 
-            if (data) {
-                const fetchedTrips: Trip[] = Object.values(data)
-                    .filter((trip: any) => trip.status === 'completed')
-                    .map((trip: any) => ({
-                        ...trip,
-                    }));
-                console.log("Filtered completed trips:", fetchedTrips);
-                setTrips(fetchedTrips);
-            } else {
-                setTrips([]);
-            }
-            setLoading(false);
+            const processTrips = async () => {
+                if (data) {
+                    const fetchedTrips: Trip[] = Object.values(data)
+                        .filter((trip: any) => trip.status === 'completed')
+                        .map((trip: any) => ({
+                            ...trip,
+                        }));
+                    
+                    const tripsWithCustomerInfo = await Promise.all(
+                        fetchedTrips.map(async (trip) => {
+                            const userData = await getUser(trip.userId);
+                            return {
+                                ...trip,
+                                customerName: userData?.firstName,
+                                customerLastName: userData?.lastName,
+                            };
+                        })
+                    );
+
+                    console.log("Filtered completed trips:", tripsWithCustomerInfo);
+                    setTrips(tripsWithCustomerInfo);
+                } else {
+                    setTrips([]);
+                }
+                setLoading(false);
+            };
+            processTrips();
         }, (error) => {
             console.error("Error fetching trips:", error);
             setLoading(false);

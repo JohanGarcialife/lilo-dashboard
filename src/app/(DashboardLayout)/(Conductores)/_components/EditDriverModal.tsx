@@ -9,11 +9,11 @@ import {
   FormControlLabel,
   Switch,
   Typography,
-  Grid,
   Divider,
   Card,
   CardMedia,
 } from "@mui/material";
+import Grid from '@mui/material/Grid';
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { updateDriver, deleteDriver } from "@/utils/driver";
@@ -108,26 +108,26 @@ const EditDriverModal: React.FC<EditDriverModalProps> = ({
             <DialogContent>
               <Grid container spacing={4}>
                 {/* User and Documents Column */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="h6" gutterBottom>
                     Datos del Usuario
                   </Typography>
                   <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 3 }}>
                     <TextField
                       label="Nombre"
-                      value={userData?.firstName || "Cargando..."}
+                      value={userData?.firstName ?? "Cargando..."}
                       InputProps={{ readOnly: true }}
                       variant="filled"
                     />
                     <TextField
                       label="Apellido"
-                      value={userData?.lastName || "Cargando..."}
+                      value={userData?.lastName ?? "Cargando..."}
                       InputProps={{ readOnly: true }}
                       variant="filled"
                     />
                     <TextField
                       label="Email"
-                      value={userData?.email || "Cargando..."}
+                      value={userData?.email ?? "Cargando..."}
                       InputProps={{ readOnly: true }}
                       variant="filled"
                     />
@@ -145,15 +145,15 @@ const EditDriverModal: React.FC<EditDriverModalProps> = ({
                       { src: driver.licenseImageUrl, label: "Licencia" },
                       { src: driver.criminalRecordImageUrl, label: "Antecedentes" },
                     ].map((img, index) => (
-                      <Grid item xs={6} sm={3} key={index}>
+                      <Grid size={{ xs: 6, sm: 3 }} key={index}>
                         <Typography variant="caption" align="center" component="div">{img.label}</Typography>
                         <Card>
                           <CardMedia
                             component="img"
-                            image={img.src}
+                            image={img.src ?? ""}
                             alt={img.label}
-                            sx={{ height: 100, objectFit: 'contain', cursor: 'pointer' }}
-                            onClick={() => window.open(img.src, '_blank')}
+                            sx={{ height: 100, objectFit: 'contain', cursor: img.src ? 'pointer' : 'default' }}
+                            onClick={() => img.src && window.open(img.src, '_blank')}
                           />
                         </Card>
                       </Grid>
@@ -162,7 +162,7 @@ const EditDriverModal: React.FC<EditDriverModalProps> = ({
                 </Grid>
 
                 {/* Editable Driver Data Column */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="h6" gutterBottom>
                     Datos del Vehículo y Conductor (Editables)
                   </Typography>
