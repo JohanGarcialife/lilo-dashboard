@@ -1,0 +1,121 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Reglas para la colección de usuarios
+    match /drivers/{driverId} {
+      // Allow authenticated admin users to read, write, and delete any driver document
+      allow read, write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+
+      // Allow authenticated drivers to read and write their own driver document
+      allow read, write: if request.auth != null && request.auth.uid == driverId;
+    }
+    
+    match /users/{userId} {
+      // Allow authenticated admin users to read, write, and delete any user document
+      allow read, write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+       match /pushTokens/{tokenId} {
+    allow read, write: if request.auth != null && request.auth.uid == userId;
+  }
+    }
+    
+        // === Colección drivers ===
+    match /drivers/{driverId} {
+      allow read, write: if request.auth != null && request.auth.uid == driverId;
+    }
+    
+    
+     match /driverLiveLocations/{driverId} {
+      allow read, write: if request.auth != null && request.auth.uid == driverId;
+    }
+    
+    // === Colección starTrippassager ===
+    match /starTrippassager/{ratingId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.driverId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.driverId;
+    }
+    
+        // === Colección starTrippassager ===
+    // Calificaciones de pasajeros por conductores (legacy)
+    match /starTrippassager/{ratingId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.driverId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.driverId;
+    }
+    
+    // === Colección rating ===
+    // Calificaciones de pasajeros por conductores
+    match /rating/{ratingId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.driverId;
+    }
+    
+    // === Colección historyTrips ===
+    // Historial de viajes completados por conductores
+    match /historyTrips/{tripId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.driverId;
+    }
+    
+    // === Colección vehicle_catalog ===
+    // Catálogo de marcas y modelos de vehículos (lectura pública)
+    match /vehicle_catalog/{brandId} {
+      allow read: if request.auth != null;
+      
+      // === Subcolección models ===
+      match /models/{modelId} {
+        allow read: if request.auth != null;
+      }
+    }
+    
+    
+    
+      // === Colección driverAccounts ===
+    // Información de pago de conductores (Stripe y banco)
+    match /driverAccounts/{driverId} {
+      allow read, write: if request.auth != null && request.auth.uid == driverId;
+    }
+    
+    // Reglas para la colección de viajes (trips)
+    match /trips/{tripId} {
+      // Un usuario autenticado puede crear un viaje.
+      allow create: if request.auth != null;
+
+      // Un usuario puede leer o actualizar un viaje si es el pasajero de ese viaje.
+      allow read, update: if request.auth != null && request.auth.uid == resource.data.user_id;
+    }
+
+    // Rules for customers collection
+    match /customers/{uid} {
+      allow read, write: if request.auth.uid == uid;
+
+      // Rules for checkout_sessions subcollection
+      match /checkout_sessions/{sessionId} {
+        allow create: if request.auth.uid == uid;
+        allow read, update: if request.auth.uid == uid;
+      }
+
+      // Rules for payments subcollection
+      match /payments/{paymentId} {
+        allow read: if request.auth.uid == uid;
+      }
+    }
+
+    // Rules for rating collection
+    match /rating/{ratingId} {
+      // Allow authenticated users to create a rating
+      // if the passengerId in the document matches their own user ID.
+      allow create: if request.auth != null && request.resource.data.passengerId == request.auth.uid;
+      
+      // Allow users to read ratings if they are the passenger or the driver.
+      allow read: if request.auth != null && 
+                   (resource.data.passengerId == request.auth.uid || resource.data.driverId == request.auth.uid);
+    }
+  }
+}

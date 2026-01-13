@@ -1,0 +1,12 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rideRequest": {
+      ".read": "auth != null"
+    },
+    "conductores_activos": {
+      ".read": "auth != null"
+    }
+  }
+}
