@@ -161,6 +161,8 @@ const EditDriverModal: React.FC<EditDriverModalProps> = ({
         profileImageUrl: values.profileImageUrl ?? "",
         licenseImageUrl: values.licenseImageUrl ?? "",
         criminalRecordImageUrl: values.criminalRecordImageUrl ?? "",
+        insuranceCardImageUrl: values.insuranceCardImageUrl ?? "",
+        vehicleRegistrationImageUrl: values.vehicleRegistrationImageUrl ?? "",
       };
       await updateDriver(driver.uid, dataToUpdate);
       toast.success("Cambios guardados correctamente");
@@ -206,6 +208,8 @@ const EditDriverModal: React.FC<EditDriverModalProps> = ({
           profileImageUrl: driver.profileImageUrl ?? "",
           licenseImageUrl: driver.licenseImageUrl ?? "",
           criminalRecordImageUrl: driver.criminalRecordImageUrl ?? "",
+          insuranceCardImageUrl: driver.insuranceCardImageUrl ?? "",
+          vehicleRegistrationImageUrl: driver.vehicleRegistrationImageUrl ?? "",
         }}
         validationSchema={validationSchema}
         onSubmit={handleUpdate}
@@ -291,6 +295,8 @@ const EditDriverModal: React.FC<EditDriverModalProps> = ({
                       { src: values.profileImageUrl, label: "Perfil", field: "profileImageUrl" },
                       { src: values.licenseImageUrl, label: "Licencia", field: "licenseImageUrl" },
                       { src: values.criminalRecordImageUrl, label: "Antecedentes", field: "criminalRecordImageUrl" },
+                      { src: values.insuranceCardImageUrl, label: "Tarjeta de Seguro", field: "insuranceCardImageUrl" },
+                      { src: values.vehicleRegistrationImageUrl, label: "Registro de Vehículo", field: "vehicleRegistrationImageUrl" },
                     ].map((img, index) => (
                       <Grid size={{ xs: 6, sm: 4 }} key={index}>
                         <Typography variant="caption" align="center" component="div">{img.label}</Typography>

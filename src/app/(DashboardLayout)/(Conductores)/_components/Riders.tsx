@@ -40,6 +40,8 @@ export interface Driver {
     userId: string;
     vehicleBrand: string;
     vehicleModel: string;
+    insuranceCardImageUrl?: string;
+    vehicleRegistrationImageUrl?: string;
 }
 
 type Order = 'asc' | 'desc';
