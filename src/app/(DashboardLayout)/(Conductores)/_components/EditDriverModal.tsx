@@ -141,9 +141,9 @@ const EditDriverModal: React.FC<EditDriverModalProps> = ({
       const downloadUrl = await getDownloadURL(imageRef);
       setFieldValue(field, downloadUrl);
       toast.success("Documento subido correctamente");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading document:", error);
-      toast.error("Error al subir el documento");
+      toast.error(`Error al subir el documento: ${error.message || error}`);
     } finally {
       setUploadingField(null);
     }
