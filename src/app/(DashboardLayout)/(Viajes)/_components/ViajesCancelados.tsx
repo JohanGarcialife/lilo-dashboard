@@ -80,8 +80,8 @@ const ViajesCanceladosTable = () => {
 
     useEffect(() => {
         const db = getFirestore(firebaseApp);
-        // Fetch all history trips and filter cancelled trips client-side to handle legacy/new data
-        const tripsQuery = query(collection(db, 'historyTrips'));
+        // Scope historyTrips query by countryId per CF-05
+        const tripsQuery = query(collection(db, 'historyTrips'), where('countryId', '==', 'sv'));
 
         const unsubscribe = onSnapshot(tripsQuery, (snapshot) => {
             setLoading(true);

@@ -1,4 +1,9 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+import { getDatabase } from "firebase/database";
+import { getStorage } from "firebase/storage";
+import { getAuth } from "firebase/auth";
+import { getFunctions } from "firebase/functions";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -9,4 +14,12 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-export const firebaseApp = initializeApp(firebaseConfig);
+export const firebaseApp = getApps().length
+  ? getApp()
+  : initializeApp(firebaseConfig);
+
+export const db = getFirestore(firebaseApp);
+export const rtdb = getDatabase(firebaseApp);
+export const storage = getStorage(firebaseApp);
+export const auth = getAuth(firebaseApp);
+export const functions = getFunctions(firebaseApp, "us-central1");

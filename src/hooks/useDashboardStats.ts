@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { getFirestore, collection, getDocs, query, orderBy } from "firebase/firestore";
 import { getDatabase, ref, get } from "firebase/database";
 import { firebaseApp } from "@/utils/firebase";
+import { queryScopedCollection } from "@/utils/adminCheck";
 
 export interface DashboardStats {
   totalVentasAnual: number;
@@ -50,24 +50,25 @@ export function useDashboardStats() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const db = getFirestore(firebaseApp);
         const rtdb = getDatabase(firebaseApp);
 
-        // 1. Fetch collections (no orderBy on historyTrips to prevent Firestore from omitting docs without 'createdAt')
-        const tripsSnap = await getDocs(collection(db, "historyTrips"));
-        const usersSnap = await getDocs(collection(db, "users"));
-        const driversSnap = await getDocs(collection(db, "drivers"));
-        const activeDriversSnap = await get(ref(rtdb, "conductores_activos"));
+        // 1. Fetch country-scoped collections (CF-05)
+        const [tripsDocs, usersDocs, driversDocs, activeDriversSnap] = await Promise.all([
+          queryScopedCollection("historyTrips"),
+          queryScopedCollection("users"),
+          queryScopedCollection("drivers"),
+          get(ref(rtdb, "conductores_activos")),
+        ]);
 
         // Build dictionaries for users and drivers
         const usersMap: Record<string, any> = {};
-        usersSnap.forEach((doc) => {
-          usersMap[doc.id] = doc.data();
+        usersDocs.forEach((u) => {
+          usersMap[u.id] = u;
         });
 
         const driversMap: Record<string, any> = {};
-        driversSnap.forEach((doc) => {
-          driversMap[doc.id] = doc.data();
+        driversDocs.forEach((d) => {
+          driversMap[d.id] = d;
         });
 
         const getTimestamp = (t: any) => {
@@ -85,10 +86,7 @@ export function useDashboardStats() {
           return Number(rawDate);
         };
 
-        const trips: any[] = [];
-        tripsSnap.forEach((doc) => {
-          trips.push({ id: doc.id, ...doc.data() });
-        });
+        const trips: any[] = [...tripsDocs];
 
         // Sort trips in memory descending by date (most recent first)
         trips.sort((a, b) => getTimestamp(b) - getTimestamp(a));
@@ -98,15 +96,14 @@ export function useDashboardStats() {
         const conductoresActivosCount = activeDriversVal ? Object.keys(activeDriversVal).length : 0;
 
         // 3. Process new and total users
-        const totalUsuariosCount = usersSnap.size;
-        const totalConductoresCount = driversSnap.size;
+        const totalUsuariosCount = usersDocs.length;
+        const totalConductoresCount = driversDocs.length;
 
         let nuevosUsuariosCount = 0;
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        usersSnap.forEach((doc) => {
-          const uData = doc.data();
+        usersDocs.forEach((uData: any) => {
           if (uData.createdAt) {
             const createdDate = uData.createdAt.toDate ? uData.createdAt.toDate() : new Date(uData.createdAt);
             if (createdDate >= thirtyDaysAgo) {

@@ -80,8 +80,8 @@ const ViajesTable = () => {
 
     useEffect(() => {
         const db = getFirestore(firebaseApp);
-        // Fetch all history trips and filter completed trips client-side to handle legacy data lacking 'status'
-        const tripsQuery = query(collection(db, 'historyTrips'));
+        // Scope historyTrips query by countryId per CF-05
+        const tripsQuery = query(collection(db, 'historyTrips'), where('countryId', '==', 'sv'));
 
         const unsubscribe = onSnapshot(tripsQuery, (snapshot) => {
             setLoading(true);

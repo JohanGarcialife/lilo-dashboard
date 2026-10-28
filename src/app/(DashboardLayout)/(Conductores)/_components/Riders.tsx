@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getFirestore, doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { firebaseApp } from '@/utils/firebase';
+import { queryScopedCollection } from '@/utils/adminCheck';
 import {
     Typography, Box,
     Table,
@@ -28,7 +29,11 @@ export interface Driver {
     dniNumber: string;
     isConductor: boolean;
     isConductorActive: boolean;
-    isUserVerified: boolean;
+    isUserVerified?: boolean;
+    verificationStatus?: 'pending' | 'verified' | 'rejected';
+    verifiedBy?: string;
+    verificationUpdatedAt?: string;
+    rejectionReason?: string;
     licenseImageUrl: string;
     licenseNumber: string;
     licensePlate: string;
@@ -42,6 +47,7 @@ export interface Driver {
     vehicleModel: string;
     insuranceCardImageUrl?: string;
     vehicleRegistrationImageUrl?: string;
+    countryId?: string;
 }
 
 type Order = 'asc' | 'desc';
@@ -88,22 +94,27 @@ const Riders = () => {
         setPage(0);
     };
 
+    const [vehiclesDict, setVehiclesDict] = useState<Record<string, any>>({});
     const fetchDrivers = async () => {
         setLoading(true);
         try {
             const db = getFirestore(firebaseApp);
-            const driversCollectionRef = collection(db, "drivers");
-            const q = query(driversCollectionRef, where("isUserVerified", "==", false));
-            const querySnapshot = await getDocs(q);
-           
+            // CF-37 & MIGRACION §6-bis: Consulta estricta por verificationStatus == 'pending'
+            const [driverDocs, vehicleDocs] = await Promise.all([
+                queryScopedCollection("drivers", [where("verificationStatus", "==", "pending")]),
+                queryScopedCollection("vehicles", []).catch(() => [])
+            ]);
+
             const fetchedDrivers: Driver[] = [];
             const userPromises: Promise<any>[] = [];
 
-            querySnapshot.forEach((docSnap) => {
-                const driverData = { uid: docSnap.id, ...docSnap.data() } as Driver;
+            driverDocs.forEach((d: any) => {
+                const driverData = { uid: d.id, ...d } as Driver;
                 fetchedDrivers.push(driverData);
                 if (driverData.userId) {
-                    userPromises.push(getDoc(doc(db, "users", driverData.userId)));
+                    userPromises.push(
+                        getDoc(doc(db, "users", driverData.userId)).catch(() => null)
+                    );
                 } else {
                     userPromises.push(Promise.resolve(null));
                 }
@@ -111,16 +122,24 @@ const Riders = () => {
 
             const userSnaps = await Promise.all(userPromises);
             const newUsersDict: Record<string, any> = {};
+            const newVehiclesDict: Record<string, any> = {};
+
+            vehicleDocs.forEach((veh: any) => {
+                if (veh.driverId && (veh.isPrimary || !newVehiclesDict[veh.driverId])) {
+                    newVehiclesDict[veh.driverId] = veh;
+                }
+            });
             
             fetchedDrivers.forEach((driver, index) => {
                 const uSnap = userSnaps[index];
-                if (uSnap && uSnap.exists()) {
+                if (uSnap && typeof uSnap.exists === 'function' && uSnap.exists()) {
                     newUsersDict[driver.userId] = uSnap.data();
                 }
             });
 
             setDrivers(fetchedDrivers);
             setUsersDict(newUsersDict);
+            setVehiclesDict(newVehiclesDict);
         } catch (error) {
             console.error("Error fetching drivers:", error);
         } finally {
@@ -139,14 +158,18 @@ const Riders = () => {
     const ridersWithNames = useMemo(() => {
         return drivers.map(driver => {
             const userData = usersDict[driver.userId];
+            const veh = vehiclesDict[driver.uid];
             return {
                 ...driver,
+                vehicleBrand: veh?.brand || driver.vehicleBrand || "",
+                vehicleModel: veh?.model || driver.vehicleModel || "",
+                licensePlate: veh?.plate || driver.licensePlate || "",
                 firstName: userData?.firstName || "Cargando...",
                 lastName: userData?.lastName || "",
                 fullName: `${userData?.firstName || ""} ${userData?.lastName || ""}`.trim() || "Cargando..."
             };
         });
-    }, [drivers, usersDict]);
+    }, [drivers, usersDict, vehiclesDict]);
 
     const filteredDrivers = useMemo(() => {
         if (!searchTerm.trim()) return ridersWithNames;
@@ -286,9 +309,9 @@ const Riders = () => {
                                     </TableCell>
                                     <TableCell>
                                         <Chip
-                                            color={driver.isUserVerified ? 'success' : 'warning'}
+                                            color={driver.verificationStatus === 'verified' ? 'success' : driver.verificationStatus === 'rejected' ? 'error' : 'warning'}
                                             size="small"
-                                            label={driver.isUserVerified ? 'Verificado' : 'Pendiente'}
+                                            label={driver.verificationStatus === 'verified' ? 'Verificado' : driver.verificationStatus === 'rejected' ? 'Rechazado' : 'Pendiente'}
                                         ></Chip>
                                     </TableCell>
                                     <TableCell align="right">

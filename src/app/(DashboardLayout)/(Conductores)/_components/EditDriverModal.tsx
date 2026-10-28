@@ -27,6 +27,8 @@ import DeleteConfirmationDialog from "@/app/(DashboardLayout)/components/shared/
 import {
   getEmailVerificationStatusCallable,
   requestEmailVerificationCodeCallable,
+  approveCountryMembershipCallable,
+  setDriverVerificationCallable,
 } from "@/utils/functions";
 import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { firebaseApp } from "@/utils/firebase";
@@ -151,13 +153,36 @@ const EditDriverModal: React.FC<EditDriverModalProps> = ({
 
   const handleUpdate = async (values: Driver) => {
     try {
+      const isApproved = Boolean(values.isUserVerified || values.verificationStatus === "verified");
+      const currentApproved = Boolean(driver.isUserVerified || driver.verificationStatus === "verified");
+
+      // CF-37: Manejo de estado de verificación mediante callable del servidor
+      if (isApproved !== currentApproved) {
+        if (isApproved) {
+          try {
+            await approveCountryMembershipCallable({
+              userId: driver.userId || driver.uid,
+              code: driver.countryId || "sv",
+            });
+          } catch (approvalErr: any) {
+            console.warn("approveCountryMembershipCallable error:", approvalErr);
+          }
+          await setDriverVerificationCallable({
+            driverId: driver.uid,
+            verified: true,
+          });
+        } else {
+          await setDriverVerificationCallable({
+            driverId: driver.uid,
+            verified: false,
+            reason: "Verificación revocada desde el panel administrativo",
+          });
+        }
+      }
+
       const dataToUpdate: Partial<Driver> = {
         dniNumber: values.dniNumber ?? "",
-        licensePlate: values.licensePlate ?? "",
         phoneNumber: values.phoneNumber ?? "",
-        vehicleBrand: values.vehicleBrand ?? "",
-        vehicleModel: values.vehicleModel ?? "",
-        isUserVerified: values.isUserVerified ?? false,
         profileImageUrl: values.profileImageUrl ?? "",
         licenseImageUrl: values.licenseImageUrl ?? "",
         criminalRecordImageUrl: values.criminalRecordImageUrl ?? "",
@@ -204,7 +229,7 @@ const EditDriverModal: React.FC<EditDriverModalProps> = ({
           phoneNumber: driver.phoneNumber ?? "",
           vehicleBrand: driver.vehicleBrand ?? "",
           vehicleModel: driver.vehicleModel ?? "",
-          isUserVerified: driver.isUserVerified ?? false,
+          isUserVerified: (driver.verificationStatus === "verified" || driver.isUserVerified) ?? false,
           profileImageUrl: driver.profileImageUrl ?? "",
           licenseImageUrl: driver.licenseImageUrl ?? "",
           criminalRecordImageUrl: driver.criminalRecordImageUrl ?? "",

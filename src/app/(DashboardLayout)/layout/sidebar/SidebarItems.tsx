@@ -14,9 +14,10 @@ import { usePathname } from "next/navigation";
 import { Upgrade } from "./Updrade";
 import Image from "next/image";
 import { useAdmin } from "@/hooks/useAdmin";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 
-const renderMenuItems = (items: any, pathDirect: any) => {
+const renderMenuItems = (items: any, pathDirect: any, isEn: boolean) => {
 
   return items.map((item: any) => {
 
@@ -25,10 +26,11 @@ const renderMenuItems = (items: any, pathDirect: any) => {
     const itemIcon = <Icon stroke={1.5} size="1.3rem" />;
 
     if (item.subheader) {
+      const heading = isEn ? item.subheaderEn || item.subheader : item.subheader;
       // Display Subheader
       return (
         <Menu
-          subHeading={item.subheader}
+          subHeading={heading}
           key={item.subheader}
         />
       );
@@ -39,11 +41,11 @@ const renderMenuItems = (items: any, pathDirect: any) => {
       return (
         <Submenu
           key={item.id}
-          title={item.title}
+          title={isEn ? item.titleEn || item.title : item.title}
           icon={itemIcon}
           borderRadius='7px'
         >
-          {renderMenuItems(item.children, pathDirect)}
+          {renderMenuItems(item.children, pathDirect, isEn)}
         </Submenu>
       );
     }
@@ -60,7 +62,7 @@ const renderMenuItems = (items: any, pathDirect: any) => {
           link={item.href}
           component={Link}
         >
-          {item.title}
+          {isEn ? item.titleEn || item.title : item.title}
         </MenuItem >
       </Box>
 
@@ -93,6 +95,7 @@ const SidebarItems = () => {
   const pathname = usePathname();
   const pathDirect = pathname;
   const { roleName, isLoading } = useAdmin();
+  const { isEn } = useLanguage();
 
   const filteredMenuItems = React.useMemo(() => {
     if (isLoading) return [];
@@ -117,7 +120,7 @@ const SidebarItems = () => {
             />
           </Link>
         </Box>
-        {!isLoading && renderMenuItems(filteredMenuItems, pathDirect)}
+        {!isLoading && renderMenuItems(filteredMenuItems, pathDirect, isEn)}
         
       </MUI_Sidebar>
 

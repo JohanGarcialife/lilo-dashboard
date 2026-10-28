@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
 import { firebaseApp } from '@/utils/firebase';
+import { queryScopedCollection } from '@/utils/adminCheck';
 import {
     Typography, Box,
     Table,
@@ -75,16 +76,12 @@ const ListPassengers = () => {
     const fetchPassengers = async () => {
         setLoading(true);
         try {
-            const db = getFirestore(firebaseApp);
-            const usersCollectionRef = collection(db, "users");
-            const q = query(usersCollectionRef, where("isActive", "==", true));
-            const querySnapshot = await getDocs(q);
+            const usersDocs = await queryScopedCollection("users", [where("isActive", "==", true)]);
 
             const fetchedPassengers: Passenger[] = [];
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
+            usersDocs.forEach((data: any) => {
                 fetchedPassengers.push({
-                    id: doc.id,
+                    id: data.id,
                     email: data.email || "N/A",
                     firstName: data.firstName || "N/A",
                     isActive: data.isActive || false,

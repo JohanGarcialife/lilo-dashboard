@@ -65,7 +65,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ open, onClose, driver, onUp
     try {
       const db = getFirestore(firebaseApp);
       const tripsRef = collection(db, 'historyTrips');
-      const q = query(tripsRef, where('driverId', '==', driver.uid));
+      const driverCountryId = (driver as any)?.countryId || 'sv';
+      const q = query(
+        tripsRef,
+        where('countryId', '==', driverCountryId),
+        where('driverId', '==', driver.uid)
+      );
       const querySnapshot = await getDocs(q);
       
       const fetchedTrips: TripHistory[] = [];

@@ -18,6 +18,7 @@ import {
 import { updateUser } from "@/utils/user";
 import { getFirestore, collection, getDocs } from "firebase/firestore";
 import { firebaseApp } from "@/utils/firebase";
+import { queryScopedCollection } from "@/utils/adminCheck";
 import toast from "react-hot-toast";
 
 interface AssignRoleModalProps {
@@ -62,29 +63,38 @@ const AssignRoleModal: React.FC<AssignRoleModalProps> = ({
         try {
           const db = getFirestore(firebaseApp);
           
-          // 1. Fetch all roles
-          const rolesSnap = await getDocs(collection(db, "roles"));
+          // 1. Fetch all roles (with fallback if restricted by firestore.rules - CF-09)
           const fetchedRoles: RoleDoc[] = [];
           const rolesMap: Record<string, boolean> = {};
-          
-          rolesSnap.forEach((doc) => {
-            const data = doc.data();
-            const roleId = doc.id;
-            fetchedRoles.push({
-              id: roleId,
-              name: data.name || "N/A",
-              description: data.description || "",
+          try {
+            const rolesSnap = await getDocs(collection(db, "roles"));
+            rolesSnap.forEach((docSnap) => {
+              const data = docSnap.data();
+              const roleId = docSnap.id;
+              fetchedRoles.push({
+                id: roleId,
+                name: data.name || "N/A",
+                description: data.description || "",
+              });
+              rolesMap[roleId] = true;
             });
-            rolesMap[roleId] = true;
-          });
+          } catch {
+            [
+              { id: "admin", name: "admin", description: "Administrador General" },
+              { id: "operaciones", name: "operaciones", description: "Operaciones y Despacho" },
+              { id: "atencion_cliente", name: "atencion_cliente", description: "Atención al Cliente" },
+            ].forEach((r) => {
+              fetchedRoles.push(r);
+              rolesMap[r.id] = true;
+            });
+          }
           setRoles(fetchedRoles);
 
-          // 2. Fetch all users
-          const usersSnap = await getDocs(collection(db, "users"));
+          // 2. Fetch country-scoped users (CF-05)
+          const usersDocs = await queryScopedCollection("users");
           const fetchedUsers: UserOption[] = [];
           
-          usersSnap.forEach((doc) => {
-            const data = doc.data();
+          usersDocs.forEach((data: any) => {
             const userRole = data.role || "";
             
             // Exclude users who already have an active employee role (present in rolesMap)
@@ -92,7 +102,7 @@ const AssignRoleModal: React.FC<AssignRoleModalProps> = ({
             
             if (!hasEmployeeRole) {
               fetchedUsers.push({
-                id: doc.id,
+                id: data.id,
                 email: data.email || "N/A",
                 firstName: data.firstName || "N/A",
                 lastName: data.lastName || "N/A",

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
 import { firebaseApp } from '@/utils/firebase';
+import { queryScopedCollection } from '@/utils/adminCheck';
 import {
     Typography, Box,
     Table,
@@ -80,20 +81,27 @@ const ListEmployees = () => {
         try {
             const db = getFirestore(firebaseApp);
             
-            // 1. Fetch all roles to create a mapping of roleId -> roleName
-            const rolesSnapshot = await getDocs(collection(db, "roles"));
-            const rolesMap: Record<string, string> = {};
-            rolesSnapshot.forEach((doc) => {
-                const data = doc.data();
-                rolesMap[doc.id] = data.name || doc.id;
-            });
+            // 1. Fetch all roles to create a mapping of roleId -> roleName (with fallback - CF-09)
+            const rolesMap: Record<string, string> = {
+                admin: "admin",
+                operaciones: "operaciones",
+                atencion_cliente: "atencion_cliente",
+            };
+            try {
+                const rolesSnapshot = await getDocs(collection(db, "roles"));
+                rolesSnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    rolesMap[doc.id] = data.name || doc.id;
+                });
+            } catch {
+                // Non-admins use fallback role names
+            }
 
-            // 2. Fetch all users
-            const usersSnapshot = await getDocs(collection(db, "users"));
+            // 2. Fetch country-scoped users (CF-05)
+            const usersDocs = await queryScopedCollection("users");
             const fetchedEmployees: Employee[] = [];
 
-            usersSnapshot.forEach((doc) => {
-                const data = doc.data();
+            usersDocs.forEach((data: any) => {
                 const roleValue = data.role;
 
                 // Only include users who have a role assigned
@@ -101,7 +109,7 @@ const ListEmployees = () => {
                     const resolvedRoleName = rolesMap[roleValue] || roleValue;
                     
                     fetchedEmployees.push({
-                        id: doc.id,
+                        id: data.id,
                         email: data.email || "N/A",
                         firstName: data.firstName || "N/A",
                         isActive: data.isActive || false,

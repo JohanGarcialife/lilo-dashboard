@@ -14,6 +14,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         try {
+          await user.getIdToken(true);
           const adminStatus = await hasDashboardAccess(user.uid);
           if (adminStatus) {
             setIsAuth(true);

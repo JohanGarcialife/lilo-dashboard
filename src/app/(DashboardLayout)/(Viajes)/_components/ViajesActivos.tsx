@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { getDatabase, ref, onValue, remove } from 'firebase/database';
 import { getFirestore, collection, getDocs, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/utils/firebase';
+import { queryScopedCollection } from '@/utils/adminCheck';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '@/utils/functions';
 import {
@@ -140,26 +141,25 @@ const ViajesActivos = () => {
             try {
                 const firestoreDb = getFirestore(firebaseApp);
 
-                // Fetch all users and drivers once, build lookup maps
-                const [usersSnap, driversSnap] = await Promise.all([
-                    getDocs(collection(firestoreDb, 'users')),
-                    getDocs(collection(firestoreDb, 'drivers')),
+                // Fetch country-scoped users and drivers once, build lookup maps (CF-05)
+                const [usersDocs, driversDocs] = await Promise.all([
+                    queryScopedCollection('users'),
+                    queryScopedCollection('drivers'),
                 ]);
 
                 const usersMap: Record<string, any> = {};
-                usersSnap.forEach((d) => { usersMap[d.id] = d.data(); });
+                usersDocs.forEach((d) => { usersMap[d.id] = d; });
 
                 const driversMap: Record<string, any> = {};
-                driversSnap.forEach((d) => { driversMap[d.id] = d.data(); });
+                driversDocs.forEach((d) => { driversMap[d.id] = d; });
 
                 // Build userId → user email map from drivers collection
                 // drivers documents have a 'userId' field pointing to the users collection
                 const driverUserIdToEmail: Record<string, string> = {};
-                driversSnap.forEach((d) => {
-                    const driverData = d.data();
+                driversDocs.forEach((driverData: any) => {
                     const userId = driverData.userId;
                     if (userId && usersMap[userId]?.email) {
-                        driverUserIdToEmail[d.id] = usersMap[userId].email;
+                        driverUserIdToEmail[driverData.id] = usersMap[userId].email;
                     }
                 });
 
@@ -262,9 +262,10 @@ const ViajesActivos = () => {
                 }
             }
 
-            // 2. Prepare Firestore historyTrips document
+            // 2. Prepare Firestore historyTrips document (including mandatory countryId - CF-06)
             const historyTripData: any = {
                 rideId: selectedRide.id,
+                countryId: (selectedRide as any).countryId || 'sv',
                 status: 'cancelled',
                 paymentMethod: selectedRide.paymentMethod || 'cash',
                 createdAt: serverTimestamp(),

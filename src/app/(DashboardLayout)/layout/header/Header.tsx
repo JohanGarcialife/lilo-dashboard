@@ -4,13 +4,16 @@ import PropTypes from 'prop-types';
 import Link from 'next/link';
 // components
 import Profile from './Profile';
-import { IconBellRinging, IconMenu } from '@tabler/icons-react';
+import { IconBellRinging, IconMenu, IconLanguage } from '@tabler/icons-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { Chip } from '@mui/material';
 
 interface ItemType {
   toggleMobileSidebar:  (event: React.MouseEvent<HTMLElement>) => void;
 }
 
 const Header = ({toggleMobileSidebar}: ItemType) => {
+  const { isEn, toggleLang } = useLanguage();
 
   // const lgUp = useMediaQuery((theme) => theme.breakpoints.up('lg'));
   // const lgDown = useMediaQuery((theme) => theme.breakpoints.down('lg'));
@@ -62,8 +65,16 @@ const Header = ({toggleMobileSidebar}: ItemType) => {
 
         </IconButton> */}
         <Box flexGrow={1} />
-        <Stack spacing={1} direction="row" alignItems="center">
-          
+        <Stack spacing={1.5} direction="row" alignItems="center">
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<IconLanguage size={18} />}
+            onClick={toggleLang}
+            sx={{ fontWeight: 700, borderRadius: 2, textTransform: "none" }}
+          >
+            {isEn ? "EN 🇺🇸 / ES" : "ES 🇸🇻 / EN"}
+          </Button>
           <Profile />
         </Stack>
       </ToolbarStyled>

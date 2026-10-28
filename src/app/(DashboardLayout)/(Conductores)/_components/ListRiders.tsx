@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { getDatabase, ref, onValue } from 'firebase/database';
 import { getFirestore, doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { firebaseApp } from '@/utils/firebase';
+import { queryScopedCollection } from '@/utils/adminCheck';
 import {
     Typography, Box,
     Table,
@@ -49,6 +50,7 @@ type Order = 'asc' | 'desc';
 const ListRiders = () => {
     const [verifiedDrivers, setVerifiedDrivers] = useState<Driver[]>([]);
     const [usersDict, setUsersDict] = useState<Record<string, any>>({});
+    const [vehiclesDict, setVehiclesDict] = useState<Record<string, any>>({});
     const [activeRidersDict, setActiveRidersDict] = useState<Record<string, any>>({});
     const [driverAccountsDict, setDriverAccountsDict] = useState<Record<string, any>>({});
     const [loading, setLoading] = useState(true);
@@ -134,22 +136,29 @@ const ListRiders = () => {
         setLoading(true);
         try {
             const db = getFirestore(firebaseApp);
-            const driversQ = query(collection(db, "drivers"), where("isUserVerified", "==", true));
-            const driverSnap = await getDocs(driversQ);
+            // CF-37 & MIGRACION §6-bis: Consulta estricta por verificationStatus == 'verified'
+            const [driverDocs, vehicleDocs] = await Promise.all([
+                queryScopedCollection("drivers", [where("verificationStatus", "==", "verified")]),
+                queryScopedCollection("vehicles", []).catch(() => [])
+            ]);
             
             const fetchedDrivers: Driver[] = [];
             const userPromises: Promise<any>[] = [];
             const accountPromises: Promise<any>[] = [];
 
-            driverSnap.forEach((docSnap) => {
-                const driverData = { uid: docSnap.id, ...docSnap.data() } as Driver;
+            driverDocs.forEach((docData: any) => {
+                const driverData = { uid: docData.id, ...docData } as Driver;
                 fetchedDrivers.push(driverData);
                 if (driverData.userId) {
-                    userPromises.push(getDoc(doc(db, "users", driverData.userId)));
+                    userPromises.push(
+                        getDoc(doc(db, "users", driverData.userId)).catch(() => null)
+                    );
                 } else {
                     userPromises.push(Promise.resolve(null));
                 }
-                accountPromises.push(getDoc(doc(db, "driverAccounts", docSnap.id)));
+                accountPromises.push(
+                    getDoc(doc(db, "driverAccounts", docData.id)).catch(() => null)
+                );
             });
 
             const [userSnaps, accountSnaps] = await Promise.all([
@@ -159,21 +168,29 @@ const ListRiders = () => {
 
             const newUsersDict: Record<string, any> = {};
             const newAccountsDict: Record<string, any> = {};
+            const newVehiclesDict: Record<string, any> = {};
+
+            vehicleDocs.forEach((veh: any) => {
+                if (veh.driverId && (veh.isPrimary || !newVehiclesDict[veh.driverId])) {
+                    newVehiclesDict[veh.driverId] = veh;
+                }
+            });
             
             fetchedDrivers.forEach((driver, index) => {
                 const uSnap = userSnaps[index];
-                if (uSnap && uSnap.exists()) {
+                if (uSnap && typeof uSnap.exists === 'function' && uSnap.exists()) {
                     newUsersDict[driver.userId] = uSnap.data();
                 }
 
                 const aSnap = accountSnaps[index];
-                if (aSnap && aSnap.exists()) {
+                if (aSnap && typeof aSnap.exists === 'function' && aSnap.exists()) {
                     newAccountsDict[driver.uid] = aSnap.data();
                 }
             });
 
             setVerifiedDrivers(fetchedDrivers);
             setUsersDict(newUsersDict);
+            setVehiclesDict(newVehiclesDict);
             setDriverAccountsDict(newAccountsDict);
         } catch (error) {
             console.error("Error fetching Firestore data:", error);
@@ -211,6 +228,10 @@ const ListRiders = () => {
             const userData = usersDict[driver.userId];
             const driverName = userData ? `${userData.firstName || ''} ${userData.lastName || ''}`.trim() : "Desconocido";
             const hasStripeAccount = !!driverAccountsDict[driver.uid]?.stripeAccountId;
+            const veh = vehiclesDict[driver.uid];
+            const vehicleBrand = veh?.brand || driver.vehicleBrand || "N/A";
+            const vehicleModel = veh?.model || driver.vehicleModel || "N/A";
+            const licensePlate = veh?.plate || driver.licensePlate || "N/A";
 
             if (activeData) {
                 return {
@@ -219,9 +240,9 @@ const ListRiders = () => {
                     userId: driver.userId,
                     driverName: activeData.driverName || driverName,
                     profilePhoto: activeData.profilePhoto || driver.profileImageUrl || "",
-                    vehicleBrand: driver.vehicleBrand || "N/A",
-                    vehicleModel: driver.vehicleModel || "N/A",
-                    licensePlate: driver.licensePlate || "N/A",
+                    vehicleBrand,
+                    vehicleModel,
+                    licensePlate,
                     phoneNumber: activeData.phoneNumber || driver.phoneNumber || "N/A",
                     isConductorActive: driver.isConductorActive ?? false,
                     hasStripeAccount,
@@ -235,20 +256,20 @@ const ListRiders = () => {
                     lastStatusUpdate: 0,
                     lat: 0,
                     lng: 0,
-                    licensePlate: driver.licensePlate || "N/A",
+                    licensePlate,
                     phoneNumber: driver.phoneNumber || "N/A",
                     profilePhoto: driver.profileImageUrl || "",
                     seatsAvailable: 0,
                     status: "No disponible",
                     timestamp: 0,
-                    vehicleBrand: driver.vehicleBrand || "N/A",
-                    vehicleModel: driver.vehicleModel || "N/A",
+                    vehicleBrand,
+                    vehicleModel,
                     isConductorActive: driver.isConductorActive ?? false,
                     hasStripeAccount,
                 } as Rider;
             }
         });
-    }, [verifiedDrivers, usersDict, activeRidersDict, driverAccountsDict]);
+    }, [verifiedDrivers, usersDict, activeRidersDict, driverAccountsDict, vehiclesDict]);
 
     const filteredRiders = useMemo(() => {
         if (!searchTerm.trim()) return riders;

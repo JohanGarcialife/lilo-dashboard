@@ -9,95 +9,163 @@ import {
   IconSettings,
   IconUserShield,
   IconRoute,
+  IconBuildingSkyscraper,
+  IconClipboardList,
+  IconMapRoute,
+  IconCurrencyDollar,
+  IconFileInvoice,
+  IconWallet,
+  IconChartBar,
+  IconTruck,
+  IconFileCheck,
 } from "@tabler/icons-react";
 
 import { uniqueId } from "lodash";
- 
+
 const Menuitems = [
   {
     navlabel: true,
     subheader: "HOME",
+    subheaderEn: "HOME",
   },
 
   {
     id: uniqueId(),
     title: "Dashboard",
+    titleEn: "Dashboard",
     icon: IconLayoutDashboard,
     href: "/",
   },
   {
     navlabel: true,
     subheader: "CONDUCTORES",
+    subheaderEn: "DRIVERS",
   },
   {
     id: uniqueId(),
     title: "Verificados",
+    titleEn: "Verified Drivers",
     icon: IconCar,
     href: "/ActiveRiders",
   },
   {
     id: uniqueId(),
     title: "Sin Verificar",
+    titleEn: "Unverified Drivers",
     icon: IconCarOff,
     href: "/UnverifiedRiders",
   },
   {
     navlabel: true,
     subheader: "PASAJEROS",
+    subheaderEn: "PASSENGERS",
   },
   {
     id: uniqueId(),
     title: "Activos",
+    titleEn: "Active Passengers",
     icon: IconUser,
     href: "/Passengers",
   },
   {
     id: uniqueId(),
     title: "De Baja",
+    titleEn: "Deactivated",
     icon: IconUserExclamation,
     href: "/OffPassengers",
   },
   {
     id: uniqueId(),
     title: "Empleados",
+    titleEn: "Staff / Employees",
     icon: IconUserShield,
     href: "/Employees",
   },
   {
     navlabel: true,
     subheader: "TRANSACCIONES",
+    subheaderEn: "TRANSACTIONS",
   },
   {
     id: uniqueId(),
     title: "Viajes Activos",
+    titleEn: "Active Trips",
     icon: IconRoute,
     href: "/Viajes-activos",
   },
   {
     id: uniqueId(),
     title: "Viajes Completados",
+    titleEn: "Completed Trips",
     icon: IconRouteSquare,
     href: "/Viajes",
   },
   {
     id: uniqueId(),
     title: "Viajes Cancelados",
+    titleEn: "Cancelled Trips",
     icon: IconRouteX,
     href: "/Viajes-cancelados",
   },
   {
     navlabel: true,
+    subheader: "B2B EL SALVADOR",
+    subheaderEn: "B2B EL SALVADOR",
+  },
+  {
+    id: uniqueId(),
+    title: "Dashboard B2B",
+    titleEn: "B2B Dashboard",
+    icon: IconChartBar,
+    href: "/DashboardB2B",
+  },
+  {
+    id: uniqueId(),
+    title: "Empresas B2B",
+    titleEn: "B2B Companies",
+    icon: IconBuildingSkyscraper,
+    href: "/Empresas",
+  },
+  {
+    id: uniqueId(),
+    title: "Inventario de Flota",
+    titleEn: "Fleet Inventory",
+    icon: IconTruck,
+    href: "/Flota",
+  },
+  {
+    id: uniqueId(),
+    title: "Documentos SV",
+    titleEn: "SV Documents",
+    icon: IconFileCheck,
+    href: "/DocumentosSV",
+  },
+  {
+    id: uniqueId(),
+    title: "Solicitudes y Monitoreo",
+    titleEn: "Requests & Monitoring",
+    icon: IconClipboardList,
+    href: "/Solicitudes",
+  },
+  {
+    id: uniqueId(),
+    title: "Nueva Solicitud B2B",
+    titleEn: "New B2B Request",
+    icon: IconMapRoute,
+    href: "/Solicitudes/nueva",
+  },
+  {
+    navlabel: true,
     subheader: "SOPORTE Y CONTROL",
+    subheaderEn: "SUPPORT & CONTROL",
   },
   {
     id: uniqueId(),
     title: "Mantenimiento / Limpieza",
+    titleEn: "Maintenance / Cleanup",
     icon: IconSettings,
     href: "/maintenance",
   },
-
 ];
 
 export default Menuitems;
-
-

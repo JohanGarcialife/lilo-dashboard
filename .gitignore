@@ -45,3 +45,13 @@ pnpm-lock.yaml
 
 .venv/
 *.docx
+
+# Context & AI Agent Directives
+context/
+AGENTS.md
+CLAUDE.md
+.cursor/
+.cursorrules
+.windsurf/
+.windsurfrules
+
