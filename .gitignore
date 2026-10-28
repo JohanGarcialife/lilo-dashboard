@@ -47,7 +47,7 @@ pnpm-lock.yaml
 *.docx
 
 # Context & AI Agent Directives
-context/
+/context/
 AGENTS.md
 CLAUDE.md
 .cursor/
